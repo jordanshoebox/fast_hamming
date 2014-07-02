@@ -19,16 +19,16 @@ VALUE method_all_hamming_pairs(VALUE self, VALUE new_media, VALUE all_media, VAL
   int i, j, k;
   VALUE i_val, j_val;
   int dist;
-  
+
   int threshold_as_int = NUM2INT(threshold);
   int new_len = RARRAY_LEN(new_media);
   int all_len = RARRAY_LEN(all_media);
   VALUE *new_arr = RARRAY_PTR(new_media);
   VALUE *all_arr = RARRAY_PTR(all_media);
   VALUE list = rb_ary_new();
-  
+
   ID sym_phash = rb_intern("phash");
-  
+
   for (i = 0; i < new_len; i++) {
     for (j = i+1; j < all_len; j++) {
       i_val = new_arr[i];
@@ -43,15 +43,15 @@ VALUE method_all_hamming_pairs(VALUE self, VALUE new_media, VALUE all_media, VAL
 }
 
 VALUE create_hamming_pair(VALUE p1, VALUE p2, VALUE dist) {
-  VALUE _1 = rb_str_new2("_1");
-  VALUE _2 = rb_str_new2("_2");
+  VALUE _1_key = rb_str_new2("_1");
+  VALUE _2_key = rb_str_new2("_2");
   VALUE dist_key = rb_str_new2("dist");
   VALUE hash = rb_hash_new();
-  
-  rb_hash_aset(hash, _1, p1);
-  rb_hash_aset(hash, _2, p2);
+
+  rb_hash_aset(hash, _1_key, p1);
+  rb_hash_aset(hash, _2_key, p2);
   rb_hash_aset(hash, dist_key, dist);
-  
+
   return hash;
 }
 
@@ -59,16 +59,17 @@ int distance(VALUE _1, VALUE _2) {
   uint64_t _1_ll;
   uint64_t _2_ll;
   uint64_t differences;
-  
+  const int max_dist = 64;
+
   if (_1 == Qnil) {
-    return 100;
+    return max_dist;
   } else if (_2 == Qnil) {
-    return 100;
+    return max_dist;
   }
-  
+
   _1_ll = NUM2ULL(_1);
   _2_ll = NUM2ULL(_2);
-  differences = _1_ll ^ _2_ll; 
- 
+  differences = _1_ll ^ _2_ll;
+
   return __builtin_popcountll(differences);
 }
