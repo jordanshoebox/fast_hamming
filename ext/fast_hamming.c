@@ -1,10 +1,13 @@
 #include "ruby.h"
 
+// Don't allow the number of pairs collected to exceed MAX_PAIRS.
+const int MAX_PAIRS = 1250000;
+
 VALUE FastHamming = Qnil;
 
 int distance(VALUE _1, VALUE _2);
 
-VALUE create_hamming_pair(VALUE p1, VALUE p2, VALUE dist);
+VALUE create_hamming_pair(VALUE p1, VALUE p2);
 
 void Init_fast_hamming();
 
@@ -27,32 +30,27 @@ VALUE method_all_hamming_pairs(VALUE self, VALUE new_media, VALUE all_media, VAL
   VALUE *all_arr = RARRAY_PTR(all_media);
   VALUE list = rb_ary_new();
 
-  ID sym_phash = rb_intern("phash");
-
+  int pair_count = 0;
   for (i = 0; i < new_len; i++) {
     for (j = i+1; j < all_len; j++) {
       i_val = new_arr[i];
       j_val = all_arr[j];
       dist = distance(i_val, j_val);
       if (dist < threshold_as_int) {
-        rb_ary_push(list, create_hamming_pair(INT2NUM(i), INT2NUM(j), INT2NUM(dist)));
+        rb_ary_push(list, create_hamming_pair(INT2NUM(i), INT2NUM(j)));
+
+        pair_count++;
+        if (pair_count >= MAX_PAIRS) {
+          return list;
+        }
       }
     }
   }
   return list;
 }
 
-VALUE create_hamming_pair(VALUE p1, VALUE p2, VALUE dist) {
-  VALUE _1_key = rb_str_new2("_1");
-  VALUE _2_key = rb_str_new2("_2");
-  VALUE dist_key = rb_str_new2("dist");
-  VALUE hash = rb_hash_new();
-
-  rb_hash_aset(hash, _1_key, p1);
-  rb_hash_aset(hash, _2_key, p2);
-  rb_hash_aset(hash, dist_key, dist);
-
-  return hash;
+VALUE create_hamming_pair(VALUE p1, VALUE p2) {
+  return rb_ary_new3(2, p1, p2);
 }
 
 int distance(VALUE _1, VALUE _2) {
