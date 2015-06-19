@@ -1,10 +1,12 @@
 #include "ruby.h"
 
+const int MAX_PAIRS = 1250000;
+
 VALUE FastHamming = Qnil;
 
 int distance(VALUE _1, VALUE _2);
 
-VALUE create_hamming_pair(VALUE p1, VALUE p2, VALUE dist);
+VALUE create_hamming_pair(VALUE p1, VALUE p2);
 
 void Init_fast_hamming();
 
@@ -15,6 +17,10 @@ void Init_fast_hamming() {
   rb_define_module_function(FastHamming, "all_hamming_pairs", method_all_hamming_pairs, 3);
 }
 
+// Gets all pairs of values that have hamming distance < threshold.
+// Because we're attempting to collect all hamming pairs, we have the potential to collect O(n^2) pairs.
+// Unfortunately this can grow really quickly with even modest inputs. We estimate roughly 50 bytes per pair
+// and cap the number of pairs to MAX_PAIRS so we can prevent the memory from growing more than 100 MB (should be ~63 MB)
 VALUE method_all_hamming_pairs(VALUE self, VALUE new_media, VALUE all_media, VALUE threshold) {
   int i, j, k;
   VALUE i_val, j_val;
@@ -27,32 +33,27 @@ VALUE method_all_hamming_pairs(VALUE self, VALUE new_media, VALUE all_media, VAL
   VALUE *all_arr = RARRAY_PTR(all_media);
   VALUE list = rb_ary_new();
 
-  ID sym_phash = rb_intern("phash");
-
+  int pair_count = 0;
   for (i = 0; i < new_len; i++) {
     for (j = i+1; j < all_len; j++) {
       i_val = new_arr[i];
       j_val = all_arr[j];
       dist = distance(i_val, j_val);
       if (dist < threshold_as_int) {
-        rb_ary_push(list, create_hamming_pair(INT2NUM(i), INT2NUM(j), INT2NUM(dist)));
+        rb_ary_push(list, create_hamming_pair(INT2NUM(i), INT2NUM(j)));
+
+        pair_count++;
+        if (pair_count >= MAX_PAIRS) {
+          return list;
+        }
       }
     }
   }
   return list;
 }
 
-VALUE create_hamming_pair(VALUE p1, VALUE p2, VALUE dist) {
-  VALUE _1_key = rb_str_new2("_1");
-  VALUE _2_key = rb_str_new2("_2");
-  VALUE dist_key = rb_str_new2("dist");
-  VALUE hash = rb_hash_new();
-
-  rb_hash_aset(hash, _1_key, p1);
-  rb_hash_aset(hash, _2_key, p2);
-  rb_hash_aset(hash, dist_key, dist);
-
-  return hash;
+VALUE create_hamming_pair(VALUE p1, VALUE p2) {
+  return rb_ary_new3(2, p1, p2);
 }
 
 int distance(VALUE _1, VALUE _2) {
